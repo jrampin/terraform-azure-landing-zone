@@ -10,15 +10,8 @@ on:
         type: choice
         default: core
         options:
-          - core    
-    
-    secrets:
-      ARM_CLIENT_ID:
-        required: true
-      ARM_TENANT_ID:
-        required: true
-      ARM_SUBSCRIPTION_ID:
-        required: true
+          - core
+
   push:
     branches:
       - main
@@ -105,7 +98,7 @@ jobs:
         
         run: |
           cd $environment
-          
+
           terraform plan \
             -var-file=environments/$environment.tfvars
         continue-on-error: false
