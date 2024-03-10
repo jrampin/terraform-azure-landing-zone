@@ -1,0 +1,107 @@
+name: ALZ - Core
+
+on:
+  # This is used to enable a workflow to be triggered manually.
+  workflow_dispatch:
+    inputs:
+      environment:
+        description: 'Specifies the GitHub deployment environment.'
+        required: true
+        type: choice
+        default: core
+        options:
+          - core    
+  push:
+    branches:
+      - main
+    paths-ignore:
+      - './'         
+      - 'README.md'
+
+env:
+  TF_INPUT: false
+  RESOURCE_GROUP: 'rg-terraform'
+  STORAGE_ACCOUNT: 'stterraformjr'
+  CONTAINER_NAME: 'tfstate'
+
+permissions:
+  # issues: write
+  # pull-requests: write
+  contents: read
+  id-token: write
+
+jobs:
+  check-code:
+    runs-on: ubuntu-latest
+    # Use the Bash shell regardless whether the GitHub Actions runner is ubuntu-latest, macos-latest, or windows-latest
+    # Set the working directory to vnet for the config files
+    defaults:
+        run:
+          shell: bash
+          working-directory: ./core
+
+  terraform-plan:
+    runs-on: ubuntu-latest
+    environment: ${{ inputs.environment }}
+
+    steps:
+      # Checkout the repository to the GitHub Actions runner
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      # Install the selected version of Terraform CLI 
+      - name: Setup Terraform
+        uses: hashicorp/setup-terraform@v3
+        with:
+          terraform_version: 1.7.0
+
+      - name: Log in to Azure
+        uses: Azure/login@v1
+        with:
+          client-id: ${{ secrets.ARM_CLIENT_ID }}
+          tenant-id: ${{ secrets.ARM_TENANT_ID }}
+          subscription-id: ${{ secrets.ARM_SUBSCRIPTION_ID }}
+
+      # Run a terraform fmt to check syntax
+      - name: Terraform Format
+        id: fmt
+        run: terraform fmt -check
+
+      # Run a terraform validate
+      - name: Terraform Validate
+        id: validate
+        # Run even if formatting fails
+        if: success() || failure()
+        run: terraform validate
+
+      # Initialize a new or existing Terraform working directory by creating initial files, loading any remote state, downloading modules, etc.
+      - name: Terraform Init
+        id: init
+        env:
+          ARM_CLIENT_ID: ${{ secrets.ARM_CLIENT_ID }}
+          ARM_TENANT_ID: ${{ secrets.ARM_TENANT_ID }}
+          ARM_SUBSCRIPTION_ID: ${{ secrets.ARM_SUBSCRIPTION_ID }}
+          RESOURCE_GROUP: ${{ env.RESOURCE_GROUP }}
+          STORAGE_ACCOUNT: ${{ env.STORAGE_ACCOUNT }}
+          CONTAINER_NAME: ${{ env.CONTAINER_NAME }}
+          environment: ${{ inputs.environment }}
+        run: |
+          terraform init \
+            -backend-config="storage_account_name=$STORAGE_ACCOUNT" \
+            -backend-config="container_name=$CONTAINER_NAME" \
+            -backend-config="resource_group_name=$RESOURCE_GROUP" \
+            -backend-config="key=$environment/terraform.tfstate"
+
+      # Run a terraform plan
+      - name: Terraform Plan
+        id: plan
+        env:
+          ARM_CLIENT_ID: ${{ secrets.ARM_CLIENT_ID }}
+          ARM_TENANT_ID: ${{ secrets.ARM_TENANT_ID }}
+          ARM_SUBSCRIPTION_ID: ${{ secrets.ARM_SUBSCRIPTION_ID }}
+          environment: ${{ inputs.environment }}
+        
+        run: |
+          terraform plan \
+            -var-file=environments/$environment.tfvars
+        continue-on-error: false
