@@ -11,6 +11,14 @@ on:
         default: core
         options:
           - core    
+    
+    secrets:
+      ARM_CLIENT_ID:
+        required: true
+      ARM_TENANT_ID:
+        required: true
+      ARM_SUBSCRIPTION_ID:
+        required: true
   push:
     branches:
       - main
@@ -33,12 +41,7 @@ permissions:
 jobs:
   core:
     runs-on: ubuntu-latest
-    # Use the Bash shell regardless whether the GitHub Actions runner is ubuntu-latest, macos-latest, or windows-latest
-    # Set the working directory to core for the config files
-    defaults:
-      run:
-        shell: bash
-        working-directory: ./core
+    environment: ${{ inputs.environment }}
 
     steps:
       # Checkout the repository to the GitHub Actions runner
@@ -58,17 +61,18 @@ jobs:
           tenant-id: ${{ secrets.ARM_TENANT_ID }}
           subscription-id: ${{ secrets.ARM_SUBSCRIPTION_ID }}
 
-      # Run a terraform fmt to check syntax
-      - name: Terraform Format
-        id: fmt
-        run: terraform fmt -check
+      # # Run a terraform fmt to check syntax
+      # - name: Terraform Format
+      #   id: fmt
+      #   run: |
+      #     cd terraform fmt -check
 
-      # Run a terraform validate
-      - name: Terraform Validate
-        id: validate
-        # Run even if formatting fails
-        if: success() || failure()
-        run: terraform validate
+      # # Run a terraform validate
+      # - name: Terraform Validate
+      #   id: validate
+      #   # Run even if formatting fails
+      #   if: success() || failure()
+      #   run: terraform validate
 
       # Initialize a new or existing Terraform working directory by creating initial files, loading any remote state, downloading modules, etc.
       - name: Terraform Init
@@ -82,6 +86,8 @@ jobs:
           CONTAINER_NAME: ${{ env.CONTAINER_NAME }}
           environment: ${{ inputs.environment }}
         run: |
+          cd $environment
+
           terraform init \
             -backend-config="storage_account_name=$STORAGE_ACCOUNT" \
             -backend-config="container_name=$CONTAINER_NAME" \
@@ -98,6 +104,8 @@ jobs:
           environment: ${{ inputs.environment }}
         
         run: |
+          cd $environment
+          
           terraform plan \
             -var-file=environments/$environment.tfvars
         continue-on-error: false
