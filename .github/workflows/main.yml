@@ -14,9 +14,9 @@ on:
   push:
     branches:
       - main
-    paths-ignore:
-      - './'         
-      - 'README.md'
+    # paths-ignore:
+    #   - './'         
+    #   - 'README.md'
 
 env:
   TF_INPUT: false
@@ -31,14 +31,14 @@ permissions:
   id-token: write
 
 jobs:
-  check-code:
+  core:
     runs-on: ubuntu-latest
     # Use the Bash shell regardless whether the GitHub Actions runner is ubuntu-latest, macos-latest, or windows-latest
-    # Set the working directory to vnet for the config files
+    # Set the working directory to core for the config files
     defaults:
-        run:
-          shell: bash
-          working-directory: ./core
+      run:
+        shell: bash
+        working-directory: ./core
 
     steps:
       # Checkout the repository to the GitHub Actions runner
