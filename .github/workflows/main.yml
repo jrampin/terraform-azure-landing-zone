@@ -98,6 +98,9 @@ jobs:
         
         run: |
           cd $environment
+          ls -lah
+          echo '---'
+          ls -lah ../
 
           terraform plan \
             -var-file=../environments/$environment.tfvars
