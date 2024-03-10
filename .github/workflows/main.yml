@@ -100,5 +100,5 @@ jobs:
           cd $environment
 
           terraform plan \
-            -var-file=environments/$environment.tfvars
+            -var-file=../environments/$environment.tfvars
         continue-on-error: false
