@@ -12,12 +12,12 @@ on:
         options:
           - core
 
-  push:
-    branches:
-      - main
-    # paths-ignore:
-    #   - './'         
-    #   - 'README.md'
+  # push:
+  #   branches:
+  #     - main
+  #   # paths-ignore:
+  #   #   - './'         
+  #   #   - 'README.md'
 
 env:
   TF_INPUT: false
@@ -54,19 +54,6 @@ jobs:
           tenant-id: ${{ secrets.ARM_TENANT_ID }}
           subscription-id: ${{ secrets.ARM_SUBSCRIPTION_ID }}
 
-      # Run a terraform validate
-      - name: Terraform Validate
-        id: validate
-        env:
-          environment: ${{ inputs.environment }}
-
-        # Run even if formatting fails
-        # if: success() || failure()
-        run: |
-          cd $environment
-          
-          terraform validate
-
       # Initialize a new or existing Terraform working directory by creating initial files, loading any remote state, downloading modules, etc.
       - name: Terraform Init
         id: init
@@ -87,6 +74,19 @@ jobs:
             -backend-config="resource_group_name=$RESOURCE_GROUP" \
             -backend-config="key=$environment/terraform.tfstate"
 
+      # Run a terraform validate
+      - name: Terraform Validate
+        id: validate
+        env:
+          environment: ${{ inputs.environment }}
+
+        # Run even if formatting fails
+        # if: success() || failure()
+        run: |
+          cd $environment
+          
+          terraform validate
+          
       # Run a terraform plan
       - name: Terraform Plan
         id: plan
